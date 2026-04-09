@@ -52,15 +52,24 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### `artifacts/api-server` (`@workspace/api-server`)
 
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
+Express 5 API server with clean architecture (controllers, services, routes, middleware).
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+- App setup: `src/app.ts` — mounts CORS, rate limiting, JSON parsing, routes at `/api`, error middleware
+- **Routes**: `src/routes/` — `health.routes.ts`, `chat.routes.ts`, `predict.routes.ts`
+- **Controllers**: `src/controllers/` — thin handlers that call services and return responses
+- **Services**: `src/services/` — `chat.service.ts` (OpenAI via Replit AI integration), `predict.service.ts` (disease matching algorithm)
+- **Middleware**: `src/middleware/` — `error.middleware.ts` (centralized), `validate.middleware.ts` (Zod), `rateLimit.middleware.ts`
+- **Schemas**: `src/schemas/` — Zod schemas for all inputs/outputs
+- **Data**: `src/data/diseases.ts` — disease database (moved from frontend)
+- **Config**: `src/config/env.ts` (validated env), `src/config/openai.ts` (OpenAI client via Replit AI integration)
+- **API Endpoints**:
+  - `GET  /api/health` — health check
+  - `POST /api/chat` — AI chat via OpenAI (gpt-5.2, Replit AI integration)
+  - `POST /api/predict` — disease prediction from symptoms (top 5 results)
+- Depends on: `openai`, `zod`, `express-rate-limit`
+- `pnpm --filter @workspace/api-server run dev` — build + run dev server
+- `pnpm --filter @workspace/api-server run build` — production esbuild bundle
 
 ### `lib/db` (`@workspace/db`)
 

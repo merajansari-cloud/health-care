@@ -1,11 +1,17 @@
 import OpenAI from "openai";
-import { env } from "./env.js";
 
-export const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-});
+const baseURL = process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"];
+const apiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"];
 
-export const OPENAI_MODEL = env.OPENAI_MODEL;
+if (!baseURL || !apiKey) {
+  throw new Error(
+    "AI_INTEGRATIONS_OPENAI_BASE_URL and AI_INTEGRATIONS_OPENAI_API_KEY must be set.",
+  );
+}
+
+export const openai = new OpenAI({ baseURL, apiKey });
+
+export const OPENAI_MODEL = "gpt-5.2";
 
 export const SYSTEM_PROMPT = `You are MediAI, a knowledgeable and empathetic AI health assistant. Your role is to:
 - Help users understand their symptoms and possible conditions

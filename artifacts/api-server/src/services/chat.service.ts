@@ -20,8 +20,7 @@ export async function getChatReply(
     const completion = await openai.chat.completions.create({
       model: OPENAI_MODEL,
       messages,
-      max_tokens: 600,
-      temperature: 0.5,
+      max_completion_tokens: 600,
     });
 
     const reply = completion.choices[0]?.message?.content;
@@ -35,7 +34,7 @@ export async function getChatReply(
     if (err instanceof AppError) throw err;
 
     const message =
-      err instanceof Error ? err.message : "Unknown OpenAI error";
+      err instanceof Error ? err.message : "Unknown AI error";
     throw new AppError(502, "AI_SERVICE_ERROR", `AI service error: ${message}`);
   }
 }
