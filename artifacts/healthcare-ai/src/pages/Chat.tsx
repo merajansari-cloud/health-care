@@ -1,12 +1,23 @@
 import { useState, useRef, useEffect } from "react";
-import { Mic, Paperclip, Send, Activity } from "lucide-react";
+import { Mic, Paperclip, Send, Activity, Camera, FolderOpen, X, FileText, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+type AttachedFile = {
+  file: File;
+  previewUrl: string | null;
+  type: "image" | "other";
+};
 
 type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  attachment?: {
+    name: string;
+    previewUrl: string | null;
+    type: "image" | "other";
+  };
 };
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/healthcare-ai/, "") || "";
@@ -22,7 +33,14 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [attached, setAttached] = useState<AttachedFile | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
+  const attachBtnRef = useRef<HTMLButtonElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     if (scrollRef.current) {
@@ -34,18 +52,51 @@ export default function Chat() {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  useEffect(() => {
+    if (!showAttachMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        attachMenuRef.current &&
+        !attachMenuRef.current.contains(e.target as Node) &&
+        attachBtnRef.current &&
+        !attachBtnRef.current.contains(e.target as Node)
+      ) {
+        setShowAttachMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAttachMenu]);
+
+  const handleFileSelect = (file: File) => {
+    const isImage = file.type.startsWith("image/");
+    const previewUrl = isImage ? URL.createObjectURL(file) : null;
+    setAttached({ file, previewUrl, type: isImage ? "image" : "other" });
+    setShowAttachMenu(false);
+  };
+
+  const removeAttachment = () => {
+    if (attached?.previewUrl) URL.revokeObjectURL(attached.previewUrl);
+    setAttached(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+    if ((!input.trim() && !attached) || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: input.trim() || (attached ? `[Attached: ${attached.file.name}]` : ""),
+      attachment: attached
+        ? { name: attached.file.name, previewUrl: attached.previewUrl, type: attached.type }
+        : undefined,
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setAttached(null);
     setIsTyping(true);
 
     const history = messages
@@ -81,8 +132,7 @@ export default function Chat() {
         },
       ]);
     } catch (err) {
-      const errorText =
-        err instanceof Error ? err.message : "Something went wrong.";
+      const errorText = err instanceof Error ? err.message : "Something went wrong.";
       setMessages((prev) => [
         ...prev,
         {
@@ -123,12 +173,32 @@ export default function Chat() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6" data-testid="chat-messages">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-            <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed shadow-sm ${
+            <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed shadow-sm space-y-2 ${
               msg.role === "user"
                 ? "bg-primary text-primary-foreground rounded-br-sm"
                 : "bg-muted text-foreground rounded-bl-sm border border-border/50"
             }`}>
-              {msg.content}
+              {/* Attachment preview in bubble */}
+              {msg.attachment && (
+                <div className={`rounded-xl overflow-hidden border ${msg.role === "user" ? "border-white/20" : "border-border/50"}`}>
+                  {msg.attachment.type === "image" && msg.attachment.previewUrl ? (
+                    <img
+                      src={msg.attachment.previewUrl}
+                      alt={msg.attachment.name}
+                      className="max-h-48 w-full object-cover"
+                    />
+                  ) : (
+                    <div className={`flex items-center gap-2 px-3 py-2 text-sm ${msg.role === "user" ? "bg-white/10" : "bg-muted"}`}>
+                      <FileText className="w-4 h-4 shrink-0" />
+                      <span className="truncate text-xs">{msg.attachment.name}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {/* Text content — hide if it's just the auto-generated attachment label */}
+              {msg.content && !msg.content.startsWith("[Attached:") && (
+                <span>{msg.content}</span>
+              )}
             </div>
           </div>
         ))}
@@ -145,6 +215,7 @@ export default function Chat() {
 
       {/* Input Area */}
       <div className="p-4 bg-background border-t">
+        {/* Suggestion chips */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none hide-scrollbar">
           {suggestions.map((s) => (
             <button
@@ -157,21 +228,108 @@ export default function Chat() {
             </button>
           ))}
         </div>
+
+        {/* Attached file chip */}
+        {attached && (
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <div className="flex items-center gap-2 bg-muted border border-border rounded-xl px-3 py-1.5 text-sm max-w-xs animate-in fade-in slide-in-from-bottom-1 duration-200">
+              {attached.type === "image" && attached.previewUrl ? (
+                <img src={attached.previewUrl} alt="preview" className="w-6 h-6 rounded object-cover shrink-0" />
+              ) : (
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+              )}
+              <span className="truncate text-xs text-foreground max-w-[140px]">{attached.file.name}</span>
+              <button
+                onClick={removeAttachment}
+                className="ml-0.5 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                aria-label="Remove attachment"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Input row */}
         <div className="flex items-end gap-2 relative">
-          <Button variant="ghost" size="icon" className="shrink-0 h-12 w-12 rounded-full hover:bg-muted" data-testid="btn-attach">
-            <Paperclip className="w-5 h-5 text-muted-foreground" />
-          </Button>
+
+          {/* Attach button + popup */}
+          <div className="relative shrink-0">
+            <Button
+              ref={attachBtnRef}
+              variant="ghost"
+              size="icon"
+              className={`h-12 w-12 rounded-full hover:bg-muted transition-colors ${showAttachMenu ? "bg-muted text-primary" : ""}`}
+              onClick={() => setShowAttachMenu((v) => !v)}
+              data-testid="btn-attach"
+              aria-label="Attach file"
+            >
+              <Paperclip className="w-5 h-5 text-muted-foreground" />
+            </Button>
+
+            {/* Popup menu */}
+            {showAttachMenu && (
+              <div
+                ref={attachMenuRef}
+                className="absolute bottom-14 left-0 bg-background border border-border rounded-2xl shadow-lg p-1.5 flex flex-col gap-0.5 min-w-[150px] z-50 animate-in fade-in slide-in-from-bottom-2 duration-150"
+              >
+                <button
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-sm font-medium text-left"
+                  onClick={() => cameraInputRef.current?.click()}
+                >
+                  <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Camera className="w-4 h-4 text-primary" />
+                  </span>
+                  Camera
+                </button>
+                <button
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors text-sm font-medium text-left"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <span className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+                    <Image className="w-4 h-4 text-secondary" />
+                  </span>
+                  Photo / File
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Hidden inputs */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file);
+            }}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,application/pdf,.doc,.docx,.txt"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file);
+            }}
+          />
+
           <div className="flex-1 relative">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-              placeholder="Describe your symptoms..."
+              placeholder={attached ? "Add a message (optional)…" : "Describe your symptoms..."}
               className="pr-12 min-h-[48px] rounded-2xl border-muted-foreground/20 focus-visible:ring-primary shadow-sm"
               data-testid="input-chat-message"
               disabled={isTyping}
             />
           </div>
+
           <Button
             variant="ghost"
             size="icon"
@@ -181,16 +339,18 @@ export default function Chat() {
           >
             <Mic className="w-5 h-5" />
           </Button>
+
           <Button
             size="icon"
             className="shrink-0 h-12 w-12 rounded-full shadow-sm btn-active-scale"
             onClick={handleSend}
-            disabled={!input.trim() || isTyping}
+            disabled={(!input.trim() && !attached) || isTyping}
             data-testid="btn-send-message"
           >
             <Send className="w-5 h-5" />
           </Button>
         </div>
+
         <div className="text-center mt-3">
           <p className="text-[10px] text-muted-foreground">MediAI may produce inaccurate information about medical conditions.</p>
         </div>
