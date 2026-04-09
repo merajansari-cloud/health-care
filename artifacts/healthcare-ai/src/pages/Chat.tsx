@@ -5,27 +5,25 @@ import { Input } from "@/components/ui/input";
 
 type Message = {
   id: string;
-  sender: "user" | "ai";
-  text: string;
+  role: "user" | "assistant";
+  content: string;
 };
 
-const initialMessages: Message[] = [
-  { id: "1", sender: "user", text: "I've been having a headache and mild fever since yesterday" },
-  { id: "2", sender: "ai", text: "I understand you're not feeling well. Let me help assess your symptoms. How severe is your headache on a scale of 1-10? Also, what's your temperature?" },
-  { id: "3", sender: "user", text: "Headache is about 6/10. Temperature is 38.2°C" },
-  { id: "4", sender: "ai", text: "Thank you. A fever of 38.2°C with a moderate headache could indicate a viral infection. Are you experiencing any other symptoms like sore throat, body aches, or fatigue?" },
-  { id: "5", sender: "user", text: "Yes, I have body aches and I'm really tired" },
-  { id: "6", sender: "ai", text: "Based on your symptoms — fever, headache, body aches, and fatigue — this pattern is consistent with a viral illness, possibly influenza. I recommend rest, staying hydrated, and monitoring your temperature." },
-  { id: "7", sender: "user", text: "Should I see a doctor?" },
-  { id: "8", sender: "ai", text: "Given your symptoms, I'd recommend seeing a doctor if your fever exceeds 39.5°C, symptoms worsen after 3-4 days, or you develop difficulty breathing. Would you like me to help you book an appointment?" }
-];
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/healthcare-ai/, "") || "";
+
+const INITIAL_MESSAGE: Message = {
+  id: "welcome",
+  role: "assistant",
+  content: "Hello! I'm MediAI, your AI health assistant. Describe your symptoms or ask me any health-related question and I'll do my best to help. Remember, I'm here to inform — always consult a doctor for a proper diagnosis.",
+};
 
 export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
   const scrollToBottom = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -36,22 +34,66 @@ export default function Chat() {
     scrollToBottom();
   }, [messages, isTyping]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    
-    const newMsg: Message = { id: Date.now().toString(), sender: "user", text: input };
-    setMessages(prev => [...prev, newMsg]);
+  const handleSend = async () => {
+    if (!input.trim() || isTyping) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: input.trim(),
+    };
+
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
-    
     setIsTyping(true);
-    setTimeout(() => {
+
+    const history = messages
+      .filter((m) => m.id !== "welcome")
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    try {
+      const res = await fetch(`${API_BASE}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage.content,
+          history,
+        }),
+      });
+
+      const json = await res.json() as {
+        success: boolean;
+        data?: { reply: string };
+        error?: { message: string };
+      };
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error?.message ?? "Failed to get a response.");
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: json.data!.reply,
+        },
+      ]);
+    } catch (err) {
+      const errorText =
+        err instanceof Error ? err.message : "Something went wrong.";
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: `Sorry, I encountered an error: ${errorText} Please try again.`,
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        sender: "ai",
-        text: "I've analyzed your message. Please describe your symptoms in more detail so I can give you a better assessment."
-      }]);
-    }, 1500);
+    }
   };
 
   const suggestions = ["fever", "headache", "cough", "fatigue", "chest pain"];
@@ -80,13 +122,13 @@ export default function Chat() {
       {/* Messages Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6" data-testid="chat-messages">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
             <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed shadow-sm ${
-              msg.sender === "user" 
-                ? "bg-primary text-primary-foreground rounded-br-sm" 
+              msg.role === "user"
+                ? "bg-primary text-primary-foreground rounded-br-sm"
                 : "bg-muted text-foreground rounded-bl-sm border border-border/50"
             }`}>
-              {msg.text}
+              {msg.content}
             </div>
           </div>
         ))}
@@ -123,10 +165,11 @@ export default function Chat() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               placeholder="Describe your symptoms..."
               className="pr-12 min-h-[48px] rounded-2xl border-muted-foreground/20 focus-visible:ring-primary shadow-sm"
               data-testid="input-chat-message"
+              disabled={isTyping}
             />
           </div>
           <Button
@@ -138,11 +181,11 @@ export default function Chat() {
           >
             <Mic className="w-5 h-5" />
           </Button>
-          <Button 
-            size="icon" 
-            className="shrink-0 h-12 w-12 rounded-full shadow-sm btn-active-scale" 
+          <Button
+            size="icon"
+            className="shrink-0 h-12 w-12 rounded-full shadow-sm btn-active-scale"
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
             data-testid="btn-send-message"
           >
             <Send className="w-5 h-5" />
