@@ -24,7 +24,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           <Navbar />
           <main className="flex-1 pb-16 md:pb-0 overflow-y-auto" data-testid="main-content">
             {children}
-            <Footer />
+            {location !== "/chat" && <Footer />}
           </main>
 
           {/* Mobile Bottom Nav */}
