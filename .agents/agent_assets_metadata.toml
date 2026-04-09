@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "G0Mdv7L0oZa8MdLts5y-f"
+uri = "file://FRONTEND_BLUEPRINT.md"
+type = "text"
+title = "MediAI — Frontend Blueprint Report"

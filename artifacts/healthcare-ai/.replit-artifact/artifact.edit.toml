@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Healthcare AI Chatbot"
+version = "1.0.0"
+id = "hc_ai_healthcare_main_001"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22564
+
+[services.development]
+run = "PORT=22564 BASE_PATH=/ pnpm --filter @workspace/healthcare-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/healthcare-ai", "run", "build" ]
+publicDir = "artifacts/healthcare-ai/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22564"
+BASE_PATH = "/"
