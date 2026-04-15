@@ -1,0 +1,143 @@
+You are a senior backend engineer.
+
+Build a production-grade backend for a healthcare AI app called "MediAI".
+
+Requirements:
+
+STACK:
+
+Node.js (latest LTS)
+Express.js
+TypeScript (strict)
+OpenAI API (ChatGPT)
+Zod (validation)
+Prisma ORM (SQLite for dev, PostgreSQL ready)
+REST API architecture
+Clean architecture (controllers, services, routes)
+CORE FEATURES:
+
+AI CHAT SYSTEM:
+Endpoint: POST /api/chat
+Input: { message: string, history: Message[] }
+Use OpenAI API (gpt-4o-mini or latest)
+Maintain conversation context
+Return AI response
+Add typing delay simulation optional
+DISEASE PREDICTION:
+Endpoint: POST /api/predict
+Input: { symptoms: string[] }
+Move frontend algorithm to backend
+Return top 5 diseases with:
+name
+matchPercent
+severity
+recommendation
+specialist
+HEALTH CHECK:
+GET /api/health → { status: "ok" }
+ERROR HANDLING:
+Centralized error middleware
+Return structured errors
+VALIDATION:
+Use Zod schemas for all inputs
+LOGGING:
+Basic request logging middleware
+SECURITY:
+Rate limit basic
+CORS enabled
+FUTURE READY:
+Add optional userId field
+Keep scalable structure
+OUTPUT FORMAT:
+
+Full folder structure
+All key files with code
+.env example
+API usage instructions
+IMPORTANT:
+
+Code must be clean, modular, production-ready
+No placeholder logic
+No bugs
+Follow best practices strictly artifacts/api-server/
+├── src/
+│ ├── index.ts # Server entry
+│ ├── app.ts # Express app setup
+│
+│ ├── config/
+│ │ ├── env.ts # Environment config
+│ │ └── openai.ts # OpenAI setup
+│
+│ ├── routes/
+│ │ ├── chat.routes.ts
+│ │ ├── predict.routes.ts
+│ │ └── health.routes.ts
+│
+│ ├── controllers/
+│ │ ├── chat.controller.ts
+│ │ ├── predict.controller.ts
+│ │ └── health.controller.ts
+│
+│ ├── services/
+│ │ ├── chat.service.ts # OpenAI logic
+│ │ └── predict.service.ts # Disease logic
+│
+│ ├── schemas/
+│ │ ├── chat.schema.ts
+│ │ └── predict.schema.ts
+│
+│ ├── data/
+│ │ └── diseases.ts # Disease DB (move from frontend)
+│
+│ ├── middleware/
+│ │ ├── error.middleware.ts
+│ │ ├── validate.middleware.ts
+│ │ └── logger.middleware.ts
+│
+│ ├── utils/
+│ │ └── helpers.ts
+│
+│ └── types/
+│ └── index.ts
+│
+├── prisma/
+│ └── schema.prisma
+│
+├── .env
+├── package.json
+└── tsconfig.json
+
+Show less
+6 days ago
+
+15 messages & 57 actions
+
+Checkpoint made
+6 days ago
+
+Worked for 6 minutes
+
+7 messages & 14 actions
+
+Checkpoint made
+6 days ago
+
+Worked for 2 minutes
+chat panel me jo masseg baar hai usko uske necha wala hissa remove kro iske alawa or kuch nhi . MediAI
+Your personal AI health assistant. Track vitals, analyse symptoms, and stay on top of your wellbeing.
+
+HIPAA-compliant & end-to-end encrypted
+Quick Links
+
+Dashboard
+AI Chat
+Support
+
+Help Center
+Privacy Policy
+Terms of Service
+support@mediai.health
++1 800 555 0000
+Made withby MediAI Team © 2026
+
+MediAI is an AI assistant and does not replace professional medical advice. Always consult a licensed physician.
