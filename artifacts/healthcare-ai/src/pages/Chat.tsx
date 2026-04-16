@@ -113,11 +113,17 @@ export default function Chat() {
         }),
       });
 
-      const json = await res.json() as {
-        success: boolean;
-        data?: { reply: string };
-        error?: { message: string };
-      };
+      const text = await res.text();
+      if (!text) {
+        throw new Error("Server returned an empty response. Please try again.");
+      }
+
+      let json: { success: boolean; data?: { reply: string }; error?: { message: string } };
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error("Server response was not valid. Please try again.");
+      }
 
       if (!res.ok || !json.success) {
         throw new Error(json.error?.message ?? "Failed to get a response.");
