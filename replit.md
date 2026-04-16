@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   └── healthcare-ai/      # React frontend
+├── server/                 # Express API server (backend root)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -50,7 +51,7 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## Packages
 
-### `artifacts/api-server` (`@workspace/api-server`)
+### `server` (`@workspace/api-server`)
 
 Express 5 API server with clean architecture (controllers, services, routes, middleware).
 
@@ -68,7 +69,7 @@ Express 5 API server with clean architecture (controllers, services, routes, mid
   - `POST /api/chat` — AI chat via OpenAI (gpt-5.2, Replit AI integration)
   - `POST /api/predict` — disease prediction from symptoms (top 5 results)
 - Depends on: `openai`, `zod`, `express-rate-limit`
-- `pnpm --filter @workspace/api-server run dev` — build + run dev server
+- `pnpm --filter @workspace/api-server run dev` — build + run dev server (from `server/` folder)
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle
 
 ### `lib/db` (`@workspace/db`)
