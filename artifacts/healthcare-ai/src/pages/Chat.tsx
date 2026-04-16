@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Mic, Paperclip, Send, Activity, Camera, FolderOpen, X, FileText, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { buildApiUrl } from "@/lib/api";
 
 type AttachedFile = {
   file: File;
@@ -19,8 +20,6 @@ type Message = {
     type: "image" | "other";
   };
 };
-
-const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/healthcare-ai/, "") || "";
 
 const INITIAL_MESSAGE: Message = {
   id: "welcome",
@@ -104,7 +103,7 @@ export default function Chat() {
       .map((m) => ({ role: m.role, content: m.content }));
 
     try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
+      const res = await fetch(buildApiUrl("/api/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
