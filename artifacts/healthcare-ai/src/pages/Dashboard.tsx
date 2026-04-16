@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Search, X, FlaskConical, AlertCircle, CheckCircle2, Info, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { buildApiUrl } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -37,8 +38,6 @@ const SEVERITY_CONFIG = {
   severe: { label: "Severe", color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-500/10", border: "border-rose-200 dark:border-rose-500/20", icon: AlertCircle },
 };
 
-const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "").replace(/^\/healthcare-ai/, "") || "";
-
 export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -73,7 +72,7 @@ export default function Dashboard() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/predict`, {
+      const res = await fetch(buildApiUrl("/api/predict"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symptoms: selected }),
