@@ -29,44 +29,61 @@ app.use(
   })
 );
 
-// 🔥 CORS fix (IMPORTANT for Vercel frontend)
+// 🔥 CORS (keep strict + safe for Vercel)
 app.use(
   cors({
-    origin: "*", // safer for testing + avoids JSON issues
+    origin: "*",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// 🔥 Preflight support
 app.options("*", cors());
 
-// 🔥 Basic safety middleware
-app.use(globalRateLimit);
-app.use(express.json({ limit: "10mb" }));
+// 🔥 Body parsing (increase limit to avoid silent failures)
+app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// 🔥 Health check (VERY IMPORTANT for debugging)
+// 🔥 Rate limit (after body parsing)
+app.use(globalRateLimit);
+
+// 🔥 Health check (IMPORTANT)
 app.get("/health", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "Server is running",
+  });
+});
+
+// 🔥 TEST endpoint (VERY IMPORTANT for debugging JSON issue)
+app.get("/test", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "API working fine",
   });
 });
 
 // 🔥 API routes
 app.use("/api", router);
 
-// 🔥 404 handler (IMPORTANT to avoid empty responses)
+// 🔥 FIXED 404 handler (always return JSON)
 app.use((req, res) => {
-  res.status(404).json({
+  return res.status(404).json({
     success: false,
     message: "Route not found",
   });
 });
 
-// 🔥 Error handler
-app.use(errorMiddleware);
+// 🔥 GLOBAL ERROR HANDLER (SAFE JSON ALWAYS)
+app.use((err, req, res, next) => {
+  console.error("🔥 Server Error:", err);
 
+  return res.status(500).json({
+    success: false,
+    message: err?.message || "Internal Server Error",
+  });
+});
+
+// 🔥 Export app
 export default app;
