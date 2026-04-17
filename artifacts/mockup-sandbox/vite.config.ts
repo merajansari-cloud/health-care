@@ -5,7 +5,7 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { mockupPreviewPlugin } from "./mockupPreviewPlugin";
 
-// ✅ SAFE ENV
+// ✅ ENV
 const port = Number(process.env.PORT) || 3000;
 const basePath = process.env.BASE_PATH || "/";
 
@@ -25,11 +25,8 @@ export default defineConfig({
     },
   },
 
-  // ❌ root हटाया (problem create करता है)
-  // root: path.resolve(import.meta.dirname),
-
   build: {
-    outDir: "dist", // ✅ simple and correct
+    outDir: "dist",
     emptyOutDir: true,
   },
 
