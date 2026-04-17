@@ -27,10 +27,20 @@ function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          
+          {/* FIX: safer base handling (prevents deploy bugs) */}
+          <WouterRouter
+            base={
+              import.meta.env.BASE_URL
+                ? import.meta.env.BASE_URL.replace(/\/$/, "")
+                : ""
+            }
+          >
             <Router />
           </WouterRouter>
+
           <Toaster />
+
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
