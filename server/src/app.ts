@@ -8,7 +8,7 @@ import { globalRateLimit } from "./middleware/rateLimit.middleware.js";
 
 const app: Express = express();
 
-// 🔥 Logger
+// Logger
 app.use(
   pinoHttp({
     logger,
@@ -29,10 +29,10 @@ app.use(
   })
 );
 
-// 🔥 CORS (keep strict + safe for Vercel)
+// CORS
 app.use(
   cors({
-    origin: "*",
+    origin: "*", // IMPORTANT fix for Vercel + frontend issues
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -41,33 +41,25 @@ app.use(
 
 app.options("*", cors());
 
-// 🔥 Body parsing (increase limit to avoid silent failures)
+// Body parser (increase limit to avoid silent failure)
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// 🔥 Rate limit (after body parsing)
+// Rate limit
 app.use(globalRateLimit);
 
-// 🔥 Health check (IMPORTANT)
+// 🔥 IMPORTANT: health check (must for debugging)
 app.get("/health", (req, res) => {
   return res.status(200).json({
     success: true,
-    message: "Server is running",
+    message: "Server running",
   });
 });
 
-// 🔥 TEST endpoint (VERY IMPORTANT for debugging JSON issue)
-app.get("/test", (req, res) => {
-  return res.status(200).json({
-    success: true,
-    message: "API working fine",
-  });
-});
-
-// 🔥 API routes
+// API routes
 app.use("/api", router);
 
-// 🔥 FIXED 404 handler (always return JSON)
+// 🔥 FIX: 404 must always return JSON (NOT empty / HTML)
 app.use((req, res) => {
   return res.status(404).json({
     success: false,
@@ -75,9 +67,9 @@ app.use((req, res) => {
   });
 });
 
-// 🔥 GLOBAL ERROR HANDLER (SAFE JSON ALWAYS)
+// 🔥 FIX: Safe error handler (prevents empty response crash)
 app.use((err, req, res, next) => {
-  console.error("🔥 Server Error:", err);
+  console.error("Server Error:", err);
 
   return res.status(500).json({
     success: false,
@@ -85,5 +77,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 🔥 Export app
 export default app;
