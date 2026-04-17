@@ -4,81 +4,50 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-// ✅ SAFE PORT HANDLING
-const rawPort = process.env.PORT;
-let port = 3000;
+// ✅ PORT HANDLE
+const port = Number(process.env.PORT) || 3000;
 
-if (!rawPort) {
-  console.warn("⚠️ PORT not provided, using default 3000");
-} else {
-  const parsedPort = Number(rawPort);
-
-  if (Number.isNaN(parsedPort) || parsedPort <= 0) {
-    console.warn(`⚠️ Invalid PORT value: "${rawPort}", using default 3000`);
-  } else {
-    port = parsedPort;
-  }
-}
-
-// ✅ SAFE BASE PATH
+// ✅ BASE PATH (always safe)
 const basePath = process.env.BASE_PATH || "/";
-if (!process.env.BASE_PATH) {
-  console.warn("⚠️ BASE_PATH not provided, using '/'");
-}
 
-export default defineConfig(async () => ({
-  base: basePath,
+export default defineConfig({
+  base: basePath, // "/" रखना safest है
 
   plugins: [
     react(),
     tailwindcss(),
     runtimeErrorOverlay(),
-
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          (await import("@replit/vite-plugin-cartographer")).cartographer({
-            root: path.resolve(import.meta.dirname, ".."),
-          }),
-          (await import("@replit/vite-plugin-dev-banner")).devBanner(),
-        ]
-      : []),
   ],
 
   resolve: {
     alias: {
-      "@": path.resolve(import.meta.dirname, "src"),
-      "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
+      "@": path.resolve(__dirname, "src"),
     },
     dedupe: ["react", "react-dom"],
   },
 
-  root: path.resolve(import.meta.dirname),
+  // ❌ root हटाया (गलत path से 404 आता है)
 
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
+    outDir: "dist", // ✅ default folder (important fix)
     emptyOutDir: true,
   },
 
   server: {
     port,
     host: "0.0.0.0",
-    allowedHosts: true,
+
+    // ✅ proxy सिर्फ dev के लिए
     proxy: {
       "/api": {
         target: process.env.VITE_DEV_API_URL || "http://localhost:8080",
         changeOrigin: true,
       },
     },
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
-    },
   },
 
   preview: {
     port,
     host: "0.0.0.0",
-    allowedHosts: true,
   },
-}));
+});
