@@ -27,12 +27,10 @@ export default defineConfig({
   },
 
   // ❌ root हटाया (गलत path से 404 आता है)
-
-  build: {
-    outDir: "dist", // ✅ default folder (important fix)
-    emptyOutDir: true,
-  },
-
+build: {
+  outDir: "dist/public",
+  emptyOutDir: true,
+}
   server: {
     port,
     host: "0.0.0.0",
